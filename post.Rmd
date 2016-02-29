@@ -1,0 +1,239 @@
+---
+title: "Is Communication an Essential Component of 'The Game'?"
+author: "Matthew Sedlar"
+date: "February 24, 2016"
+output: html_document
+---
+
+Steffen Benndorf's The Game is an incredibly simple cooperative card game. It's so ridiculously easy to learn, I had a group of people playing it less than five minutes after I opened the box. Beating the game, however, is just as difficult as finding information about it using the phrase "the game" in a search engine.
+
+Four cards are laid on the table, two cards that start at 1 and go up and two that start at 100 and go down. There are 98 cards in a deck with the numbers 2 through 99. Each player is dealt six cards and they take turns laying their cards on the piles. The game ends when there are no more cards in the deck or players can't make a move. The goal is to have no cards left. The catch? Players can't tell each other which cards they are holding. 
+
+The game allows what is called "permissible communication" in the form of phrases like "don't lay a card on that pile" or "don't make any big jumps on this pile." I noticed every time I've played, less than 10 cards are left, which the instructions notes is a great outcome. I wondered if the game is just set up in a way that makes it difficult to fail miserably. Turns out communication (and probably letting communication that isn't permissible slip occassionally) may just be an essential component.
+
+## Simulating a Game of The Game
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+set.seed(1234)
+
+deck <- c(2:99)
+
+# player 1
+player1 <- sample(deck,6,replace=F)
+deck <- deck[! deck %in% player1]
+
+# player 2
+player2 <- sample(deck,6,replace=F)
+deck <- deck[! deck %in% player2]
+
+# player 3
+player3 <- sample(deck,6,replace=F)
+deck <- deck[! deck %in% player3]
+
+players <- list(player1 = player1,player2 = player2,player3 = player3)
+
+ascend.1 <- 1
+ascend.2 <- 1
+descend.1 <- 99
+descend.2 <- 99
+
+# game mechanics
+
+play.cards <- function(p,x,limit) {
+  for(i in x) {
+    if(i < descend.1 & i > descend.1 - limit) { 
+      descend.1 <<- i
+      print(paste(i, "was played on descend.1 by",p))
+      x <- x[! x %in% i]
+    } else if (i < descend.2 & i > descend.2 - limit) {
+      descend.2 <<- i
+      print(paste(i, "was played on descend.2 by",p))
+      x <- x[! x %in% i]
+    } else if (i > ascend.1 & i < ascend.1 + limit) {
+      ascend.1 <<- i
+      print(paste(i, "was played on ascend.1 by",p))
+      x <- x[! x %in% i]
+    } else if (i > ascend.2 & i < ascend.2 + limit) {
+      ascend.2 <<- i
+      print(paste(i, "was played on ascend.2 by",p))
+      x <- x[! x %in% i]
+    } else if (i == descend.1 + 10) { 
+      descend.1 <<- i 
+      print(paste(i, "was played on descend.1 by",p))
+      x <- x[! x %in% i]
+    }
+    else if (i == descend.2 + 10) { 
+      descend.2 <<- i
+      print(paste(i, "was played on descend.2 by",p))
+      x <- x[! x %in% i]
+    }
+    else if (i == ascend.1 - 10) { 
+      ascend.1 <<- i
+      print(paste(i, "was played on ascend.1 by",p))
+      x <- x[! x %in% i]
+    }
+    else if (i == ascend.2 - 10) { 
+      ascend.2 <<- i
+      print(paste(i, "was played on ascend.2 by",p))
+      x <- x[! x %in% i]
+    }
+    else if (length(x) < min) { break }
+    else { next }
+  }
+  x
+}
+
+min <- 4
+
+round <- function(limit=1) {
+  
+  if(length(deck) == 0) { min <<- 1 }
+  
+  # player 1's turn
+  while(length(player1) > min) {
+    player1 <<- play.cards("player1",player1, limit)
+    limit <- limit + 1
+    if(limit > 99) { 
+      print("player1 has no move")
+      break
+    }
+  }
+  
+  limit <- 1
+  
+  ## new cards dealt
+  if(length(player1) < 6 & length(deck) > 6-length(player1)) {
+    player1.deal <<- sample(deck,6-length(player1),replace=F)
+    deck <<- deck[! deck %in% player1.deal]
+    player1 <<- c(player1,player1.deal)
+  } else if (length(deck) == 6-length(player1)) { 
+    player1.deal <<- sample(deck,length(deck),replace=F)
+    deck <<- deck[! deck %in% player1.deal]
+    player1 <<- c(player1, player1.deal)
+  } else { print("There are no more cards in the deck") }
+  
+  # player 2's turn
+  while(length(player2) > min) {
+    player2 <<- play.cards("player2",player2, limit)
+    limit <- limit + 1
+    if(limit > 99) { 
+      print("player2 has no move")
+      break
+    }
+  }
+  
+  limit <- 1
+  
+  ## new cards dealt
+  if(length(player2) < 6 & length(deck) > 6-length(player2)) {
+    player2.deal <<- sample(deck,6-length(player2),replace=F)
+    deck <<- deck[! deck %in% player2.deal]
+    player2 <<- c(player2,player2.deal)
+  } else if (length(deck) == 6-length(player2)) { 
+    player2.deal <<- sample(deck,length(deck),replace=F)
+    deck <<- deck[! deck %in% player2.deal]
+    player1 <<- c(player2, player2.deal)
+  } else { print("There are no more cards in the deck") }
+  
+  # player 3's turn
+  while(length(player3) > min) {
+    player3 <<- play.cards("player3",player3, limit)
+    limit <- limit + 1
+    if(limit > 99) { 
+      print("player3 has no move")
+      break
+    }
+  }
+  
+  limit <- 1
+  
+  ## new cards dealt
+  if(length(player3) < 6 & length(deck) > 6-length(player3)) {
+    player3.deal <<- sample(deck,6-length(player3),replace=F)
+    deck <<- deck[! deck %in% player3.deal]
+    player3 <<- c(player3,player3.deal)
+  } else if (length(deck) == 6-length(player3)) { 
+    player3.deal <<- sample(deck,length(deck),replace=F)
+    deck <<- deck[! deck %in% player3.deal]
+    player3 <<- c(player3, player3.deal)
+  } else { print("There are no more cards in the deck") }
+}
+
+```
+
+Simulating a game of The Game isn't easy. In fact, I had to rewwrite portions of the function more than once. But I've done my best. First I created a deck, distributed six random cards to each player (three in this simulation), and then set up two ascend piles and two descend piles. Then I created a function called `round` in which each player takes turns using a function called `play.cards`. It's basically a long if, else if, else statement that tells players what to do with, at minimum, two of their cards (as stated in the rules).
+
+So the first round looks like this:
+
+```{r echo=FALSE}
+round()
+```
+
+At the end of the round, players are dealt new cards, so they always hold six -- unless the deck is empty, then they play what's left in their hand.
+
+The Game allows one trick to reset a pile. As you can see in the first round, player 1 played a 13 on one of the ascend piles. That's a pretty crappy move, but players are often faced with those decisions because you have to play at least two cards. And it's better to play 13 than, say, 99. 
+
+However, if another player has a card that is equal to 10 plus whatever is showing on the descend piles or 10 minus whatever is showing on the ascend piles, they can help the group out. In this case, if player two or three had been holding a 3, they could have reversed ascend.1.
+
+As a reminder, this is where the piles stand after the first round:
+
+```{r echo=FALSE}
+print(paste("Ascend 1:",ascend.1))
+print(paste("Ascend 2:",ascend.2))
+print(paste("Descend 1:",descend.1))
+print(paste("Descend 2:",descend.2))
+```
+
+In round two you can see how the trick described above plays out:
+
+```{r echo=FALSE}
+round()
+```
+
+Player 1 apparently had crappy cards. Player 1 put an 82 on descend.1 and an 18 on ascend.2, which are pretty bad jumps. But then player 3 did something cool. Player 3 played an 81 on descend.1 and then played a 91, reversing the pile. 
+
+Now when I'm describing these "players'" actions, I'm really just talking about the output of a function that attempts to mimic player behavior. Player 3, obviously, did not make a choice to reverse the pile because it was cool. He/she/it made the choice because it was one of many if/else if actions available to he/she/it. Player 3, in fact, did not know that player 1 was going to jump the pile down to 82. It was a coincidence. If that had not happened, player 3 may have just played the 91 on descend.1 and saved the 81 for later.
+
+But this is the whole purpose of my experiment: to see if communication is really necessary.
+
+## Results
+
+```{r echo=FALSE, include=FALSE}
+simulation <- replicate(20,round())
+
+score <- sum(length(deck),length(player1),length(player2),length(player3))
+```
+
+Let's skip ahead, 23 rounds or so later, and check out the outcome of this game. By the end, all the players can no longer make any moves and there are `r score` cards left. That's not a great outcome. Because of the randomness involved in the game (the probability of certain cards being dealt and played), one simulation is not enough.
+
+I ran 999 more games. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+game.results <- read.csv("data/game-results.csv")
+
+require(mclust)
+
+yBIC <- mclustBIC(game.results$score,modelNames = "V")
+yModel <- mclustModel(game.results$score,yBIC)
+
+```
+
+The players (a.k.a. the function) performed terribly. The results follow what's called a multimodal distribution, see plot below. It's when two results pop up frequently, in this case the major mode (or big hump) is `r floor(yModel$parameter$mean[1])` and the minor mode is around `r floor(yModel$parameter$mean[2])`. 
+
+```{r echo=FALSE}
+
+d <- density(game.results$score)
+plot(d, main= "Distribution of Simulated Game Scores")
+polygon(d, col="#999999")
+
+```
+
+Why? With such a large number of simulations, it seems that the highest probability scores fall between two groups, one group that does fairly well (16 ain't bad) and another group that does terribly. 
+
+"But why?" you continue to ask. I honestly don't know. Maybe it's flawed behavior programmed into my script. People are hard to simulate, guys. And maybe that's why overall the function I wrote does a poor job of winning The Game. To be more accurate, `r (1-length(which(game.results$score <=10))/1000)*100`% of the time it's terrible. The best score was `r quantile(game.results$score,0.01)`, which is impressive, but a great outcome only happens `r (length(which(game.results$score <=10))/1000)*100`% of the time because those outcomes rely on the probability of players being dealt great hands. 
+
+In a perfect world, I could compare 1000 actual games with human players to these 1000. In an even better than perfect world, I could compare my simulated games to two sets of games with randomly selected human players, with one set where communication is allowed and another where communication is not allowed. 
+
+My hypothesis is that communication -- permissible and not permissible, for you cheaters -- is the key to winning the game, and until I get a research grant (see: never) to conduct further testing, we'll just have to settle for that answer.
